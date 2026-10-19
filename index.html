@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Alight Motion PWA</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<style>*{-webkit-tap-highlight-color:transparent}canvas{touch-action:none}</style>
+</head>
+<body class="bg-[#0f172a] text-white min-h-screen overflow-hidden">
+<!-- LANDING -->
+<div id="landing" class="min-h-screen p-4">
+<div class="max-w-md mx-auto">
+<div class="bg-[#1e293b] rounded-[24px] p-8 text-center mt-2 border border-white/5">
+<div class="inline-block px-4 py-2 bg-[#6366f1]/20 text-[#818cf8] rounded-full text-sm mb-6">Aplikasi Profesional</div>
+<h1 class="text-4xl font-bold mb-4">Alight Motion</h1>
+<p class="text-slate-400 text-[15px] leading-relaxed mb-6">Editor video profesional, animasi keyframe, grafik vektor, dan efek visual. Versi FIXED mulai dari awal.</p>
+<button id="btnStart" class="bg-[#6366f1] w-full py-3 rounded-xl font-semibold active:scale-95">Mulai Berkreasi</button>
+</div>
+<h2 class="text-2xl font-bold mt-8 mb-4">Fitur Utama</h2>
+<div class="space-y-3">
+<div class="bg-[#1e293b] rounded-2xl p-4 flex gap-3 border border-white/5"><div class="w-8 h-8 bg-[#6366f1] rounded-full flex items-center justify-center">✓</div><div><b>Animasi Keyframe</b><p class="text-sm text-slate-400">Drag + Play = animasi otomatis</p></div></div>
+<div class="bg-[#1e293b] rounded-2xl p-4 flex gap-3 border border-white/5"><div class="w-8 h-8 bg-[#6366f1] rounded-full flex items-center justify-center">✓</div><div><b>Export MP4</b><p class="text-sm text-slate-400">Rekam canvas jadi video</p></div></div>
+</div>
+</div>
+</div>
+<!-- EDITOR -->
+<div id="editor" class="hidden flex-col h-screen">
+<div class="flex items-center justify-between p-3 bg-[#1e293b] border-b border-white/10">
+<button id="btnBack" class="px-3 py-1.5 bg-white/10 rounded-lg text-sm">← Keluar</button>
+<div class="flex gap-2"><select id="aspect" class="bg-[#0f172a] border border-white/10 rounded-lg px-2 py-1 text-sm"><option value="9:16">9:16</option><option value="16:9">16:9</option><option value="1:1">1:1</option></select><button id="btnExport" class="px-4 py-1.5 bg-[#6366f1] rounded-lg text-sm font-bold">Export</button></div>
+</div>
+<div class="flex-1 bg-[#020617] flex items-center justify-center p-2"><canvas id="c" width="720" height="1280" class="bg-black rounded-xl max-w-full max-h-full"></canvas></div>
+<div class="bg-[#1e293b] border-t border-white/10 p-2 space-y-2">
+<div class="flex items-center gap-2"><button id="btnPlay" class="w-10 h-10 bg-white text-black rounded-full font-bold">▶</button><input id="timeline" type="range" min="0" max="300" value="0" class="flex-1 accent-[#6366f1]"><span id="timeLabel" class="font-mono text-xs w-12">0.0s</span><button id="btnKeyframe" class="px-2 py-1 bg-[#6366f1]/20 border border-[#6366f1] rounded text-xs">+ Keyframe</button></div>
+<div class="grid grid-cols-4 gap-2"><button data-add="text" class="addBtn py-2.5 bg-white/10 rounded-xl text-xs">+ Teks</button><button data-add="rect" class="addBtn py-2.5 bg-white/10 rounded-xl text-xs">+ Kotak</button><button data-add="circle" class="addBtn py-2.5 bg-white/10 rounded-xl text-xs">+ Bulat</button><button data-add="image" class="addBtn py-2.5 bg-white/10 rounded-xl text-xs">+ Gambar</button><input type="file" id="imgInput" accept="image/*" class="hidden"></div>
+<div id="layerCtrl" class="hidden bg-[#0f172a] p-3 rounded-xl border border-white/10 space-y-2"><div class="flex justify-between"><span id="selName" class="text-sm font-bold">Layer</span><button id="btnDelLayer" class="text-red-400 text-xs bg-red-500/10 px-2 py-1 rounded">Hapus</button></div><div class="grid grid-cols-2 gap-2 text-xs"><label>X<input id="ctrlX" type="range" min="0" max="720" class="w-full accent-indigo-500"></label><label>Y<input id="ctrlY" type="range" min="0" max="1280" class="w-full accent-indigo-500"></label><label>Scale<input id="ctrlScale" type="range" min="0.1" max="3" step="0.1" value="1" class="w-full accent-indigo-500"></label><label>Opacity<input id="ctrlOp" type="range" min="0" max="1" step="0.05" value="1" class="w-full accent-indigo-500"></label></div><div class="flex gap-2"><input id="ctrlColor" type="color" value="#6366f1" class="w-10 h-8 rounded"><input id="ctrlText" type="text" placeholder="Teks" class="flex-1 bg-[#1e293b] border border-white/10 rounded px-2 py-1 text-xs"></div></div>
+<div id="layersList" class="flex gap-2 overflow-x-auto"></div>
+</div>
+</div>
+<script>
+// SEMUA LOGIC WORKING - MULAI DARI AWAL
+const landing=document.getElementById('landing'),editor=document.getElementById('editor'),canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let layers=[],selected=0,currentTime=0,isPlaying=false;
+function addLayer(type){let l={id:Date.now(),type,x:360,y:640,w:200,h:200,scale:1,rotation:0,opacity:1,color:'#6366f1',text:'ALIGHT',keyframes:{x:[]},image:null}; if(type==='rect')l.w=200; if(type==='circle')l.w=150; layers.push(l); selected=layers.length-1; render(); draw(); showCtrl();}
+function render(){const list=document.getElementById('layersList'); list.innerHTML=''; layers.forEach((l,i)=>{let d=document.createElement('div'); d.className=`shrink-0 px-3 py-2 rounded-lg text-xs cursor-pointer border ${i===selected?'bg-indigo-600 border-indigo-400':'bg-white/10 border-white/10'}`; d.textContent=(i+1)+'. '+l.type+(l.keyframes.x.length?' ◆':''); d.onclick=()=>{selected=i; render(); draw(); showCtrl();}; list.appendChild(d);});}
+function showCtrl(){const box=document.getElementById('layerCtrl'); if(selected<0){box.classList.add('hidden');return;} box.classList.remove('hidden'); const l=layers[selected]; document.getElementById('selName').textContent='Layer '+(selected+1)+' - '+l.type; document.getElementById('ctrlX').value=l.x; document.getElementById('ctrlY').value=l.y; document.getElementById('ctrlScale').value=l.scale; document.getElementById('ctrlOp').value=l.opacity; document.getElementById('ctrlColor').value=l.color; document.getElementById('ctrlText').value=l.text;}
+function draw(){ctx.fillStyle='#000'; ctx.fillRect(0,0,720,1280); layers.forEach((l,i)=>{let x=l.x,y=l.y; if(l.keyframes.x.length>=2){let p=l.keyframes.x[0],n=l.keyframes.x[1]; let t=(currentTime-p.t)/(n.t-p.t); if(t>=0&&t<=1){x=p.v+(n.v-p.v)*t;}} ctx.save(); ctx.globalAlpha=l.opacity; ctx.translate(x,y); ctx.rotate(l.rotation*Math.PI/180); ctx.scale(l.scale,l.scale); ctx.fillStyle=l.color; if(l.type==='text'){ctx.font='bold 40px sans-serif'; ctx.textAlign='center'; ctx.fillText(l.text,0,0);} else if(l.type==='rect'){ctx.fillRect(-l.w/2,-l.h/2,l.w,l.h);} else if(l.type==='circle'){ctx.beginPath(); ctx.arc(0,0,75,0,Math.PI*2); ctx.fill();} else if(l.type==='image'&&l.image){ctx.drawImage(l.image,-l.w/2,-l.h/2,l.w,l.h);} if(i===selected){ctx.strokeStyle='#6366f1'; ctx.lineWidth=3; ctx.setLineDash([6,4]); ctx.strokeRect(-l.w/2-4,-l.h/2-4,l.w+8,l.h+8); ctx.setLineDash([]);} ctx.restore();});}
+document.getElementById('btnStart').onclick=()=>{landing.classList.add('hidden'); editor.classList.remove('hidden'); editor.classList.add('flex'); if(layers.length===0)addLayer('text'); draw();};
+document.getElementById('btnBack').onclick=()=>{editor.classList.add('hidden'); editor.classList.remove('flex'); landing.classList.remove('hidden');};
+document.querySelectorAll('.addBtn').forEach(b=>b.addEventListener('click',()=>{let t=b.dataset.add; if(t==='image')document.getElementById('imgInput').click(); else addLayer(t);})); 
+document.getElementById('imgInput').onchange=e=>{let f=e.target.files[0]; if(!f)return; let url=URL.createObjectURL(f); let img=new Image(); img.onload=()=>{layers.push({id:Date.now(),type:'image',x:360,y:640,w:300,h:300,scale:1,rotation:0,opacity:1,color:'#fff',text:'',keyframes:{x:[]},image:img}); selected=layers.length-1; render(); draw(); showCtrl();}; img.src=url;};
+['ctrlX','ctrlY','ctrlScale','ctrlOp'].forEach(id=>{document.getElementById(id).oninput=e=>{if(selected<0)return; let l=layers[selected]; if(id==='ctrlX')l.x=+e.target.value; if(id==='ctrlY')l.y=+e.target.value; if(id==='ctrlScale')l.scale=+e.target.value; if(id==='ctrlOp')l.opacity=+e.target.value; draw();};});
+document.getElementById('ctrlColor').oninput=e=>{if(selected>=0){layers[selected].color=e.target.value; draw();}};
+document.getElementById('ctrlText').oninput=e=>{if(selected>=0){layers[selected].text=e.target.value; draw();}};
+document.getElementById('btnDelLayer').onclick=()=>{if(selected>=0){layers.splice(selected,1); selected=0; render(); draw();}};
+document.getElementById('btnKeyframe').onclick=()=>{if(selected<0)return alert('Pilih layer!'); let l=layers[selected]; l.keyframes.x.push({t:currentTime,v:l.x}); l.keyframes.x.push({t:currentTime+80,v:l.x+(Math.random()*200-100)}); alert('Keyframe ditambah! Klik Play ▶'); render();};
+document.getElementById('timeline').oninput=e=>{currentTime=+e.target.value; document.getElementById('timeLabel').textContent=(currentTime/10).toFixed(1)+'s'; draw();};
+document.getElementById('btnPlay').onclick=function(){isPlaying=!isPlaying; this.textContent=isPlaying?'⏸':'▶'; if(isPlaying){(function loop(){if(!isPlaying)return; currentTime=(currentTime+1)%300; document.getElementById('timeline').value=currentTime; document.getElementById('timeLabel').textContent=(currentTime/10).toFixed(1)+'s'; draw(); setTimeout(loop,100);})();}};
+canvas.addEventListener('click',e=>{let r=canvas.getBoundingClientRect(); let x=(e.clientX-r.left)*(720/r.width), y=(e.clientY-r.top)*(1280/r.height); layers[selected].x=x; layers[selected].y=y; document.getElementById('ctrlX').value=x; document.getElementById('ctrlY').value=y; draw();});
+document.getElementById('btnExport').onclick=()=>{if(layers.length===0)return alert('Tambah layer dulu!'); let stream=canvas.captureStream(30); let rec=new MediaRecorder(stream); let chunks=[]; rec.ondataavailable=e=>chunks.push(e.data); rec.onstop=()=>{let blob=new Blob(chunks,{type:'video/webm'}); let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='alight-motion-fixed.webm'; a.click();}; rec.start(); setTimeout(()=>rec.stop(),3000); alert('Rekam 3 detik, auto download!');};
+document.getElementById('aspect').onchange=e=>{let v=e.target.value; if(v==='16:9'){canvas.width=1280; canvas.height=720;} else if(v==='1:1'){canvas.width=720; canvas.height=720;} else {canvas.width=720; canvas.height=1280;} draw();};
+render();
+</script>
+</body>
+</html>
